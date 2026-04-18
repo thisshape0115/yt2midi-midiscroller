@@ -1,4 +1,4 @@
-name: Build & Package (Windows)
+name: Build (Windows)
 
 on:
   push:
@@ -14,15 +14,15 @@ permissions:
 
 jobs:
   build:
-    name: Build (Windows)
+    name: Build Windows EXE
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4      # v4: 캐시 자동탐지 없음
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
@@ -31,21 +31,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller PyQt5 mido pygame numpy
 
-      - name: Build executable
-        run: pyinstaller --onefile --windowed --name "app-windows" --clean midi_player.py
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile --windowed --clean --name "HyperMIDI" midi_player.py
 
-      - name: List dist/
-        run: dir dist\
-
-      - name: Upload artifact
+      - name: Upload EXE artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-windows
-          path: dist\app-windows.exe
-          retention-days: 7
+          name: HyperMIDI-windows
+          path: dist\HyperMIDI.exe
+          retention-days: 14
 
   release:
-    name: Create Release
+    name: GitHub Release
     needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
@@ -56,18 +54,9 @@ jobs:
         with:
           path: dist/
 
-      - name: Create GitHub Release
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: "Release ${{ github.ref_name }}"
-          draft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          name: "HyperMIDI ${{ github.ref_name }}"
           files: dist/**/*
-          body: |
-            ## 📦 빌드 결과물
-            | 파일 | 플랫폼 |
-            |------|--------|
-            | `app-windows.exe` | Windows |
-
-            > 자동 빌드: `${{ github.sha }}`
+          prerelease: ${{ contains(github.ref_name, '-') }}
